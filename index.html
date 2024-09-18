@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blog App</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        height: 127vh;
+        display: flex;
+        background: linear-gradient(to top left, #28b487, #7dd56f);
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        width: 75%;
+        margin: 0 auto;
+        display: flex;
+      }
+      .form-section,
+      .blog-list-section {
+        width: 50%;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .form-section {
+        border-radius: 15px;
+        background: white;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .blog-list-section {
+        border-radius: 15px;
+        background: white;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        max-height: 80vh;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .form-group input,
+      .form-group textarea {
+        width: 100%;
+        padding: 8px;
+      }
+      .form-group button {
+        padding: 10px 20px;
+      }
+      .blog-item {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: #f9f9f9;
+      }
+      .hidden {
+        display: none;
+      }
+      #home-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        background-color: #ff6f61;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      
+      #home-button:hover {
+        background-color: #ff3b2e;
+      }
+      
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="form-section">
+        <h1>Blog App</h1>
+        <div id="register-form">
+          <h2>Register</h2>
+          <div class="form-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" />
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" />
+          </div>
+          <button onclick="register()">Register</button>
+        </div>
+        <div id="login-form">
+          <h2>Login</h2>
+          <div class="form-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" />
+          </div>
+          <button onclick="login()">Login</button>
+        </div>
+        <div id="blog-section" class="hidden">
+          <h2>Manage Blogs</h2>
+          <div id="create-blog">
+            <h3>Create Blog Post</h3>
+            <div class="form-group">
+              <label for="blog-title">Title</label>
+              <input type="text" id="blog-title" />
+            </div>
+            <div class="form-group">
+              <label for="blog-content">Content</label>
+              <textarea id="blog-content" rows="5"></textarea>
+            </div>
+            <button onclick="createBlog()">Create Blog</button>
+          </div>
+          <div id="delete-blog">
+            <h3>Delete Blog Post</h3>
+            <div class="form-group">
+              <label for="delete-index">Index (starting from 0)</label>
+              <input type="number" id="delete-index" />
+            </div>
+            <button onclick="deleteBlog()">Delete Blog</button>
+          </div>
+          <div id="modify-blog">
+            <h3>Modify Blog Post</h3>
+            <div class="form-group">
+              <label for="modify-index">Index (starting from 0)</label>
+              <input type="number" id="modify-index" />
+            </div>
+            <div class="form-group">
+              <label for="modify-title">New Title</label>
+              <input type="text" id="modify-title" />
+            </div>
+            <div class="form-group">
+              <label for="modify-content">New Content</label>
+              <textarea id="modify-content" rows="5"></textarea>
+            </div>
+            <button onclick="modifyBlog()">Modify Blog</button>
+          </div>
+        </div>
+        
+
+      </div>
+      <button id="home-button" class="hidden" onclick="returnToHome()">Return to Home</button>
+      <div class="blog-list-section">
+        <h2>My Blogs</h2>
+        <div id="blog-list">
+          <!-- Blog items will be added here dynamically -->
+        </div>
+      </div>
+    </div>
+    <script>
+      let currentUser = null;
+
+      async function register() {
+        const username = document.getElementById("register-username").value;
+        const password = document.getElementById("register-password").value;
+        const response = await fetch("/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const result = await response.json();
+        alert(result.message);
+      }
+
+      async function login() {
+        const username = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
+        const response = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const result = await response.json();
+        alert(result.message);
+        if (result.username) {
+            currentUser = result.username;
+            document.getElementById("login-form").classList.add("hidden");
+            document.getElementById("register-form").classList.add("hidden");
+            document.getElementById("blog-section").classList.remove("hidden");
+            document.getElementById("home-button").classList.remove("hidden"); // Show home button
+            loadBlogs();
+          }
+      }
+
+      async function createBlog() {
+        if (!currentUser) {
+          alert("Please log in first.");
+          return;
+        }
+        const title = document.getElementById("blog-title").value;
+        const content = document.getElementById("blog-content").value;
+        const response = await fetch("/create_blog", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: currentUser, title, content }),
+        });
+        const result = await response.json();
+        alert(result.message);
+        loadBlogs(); // Reload blogs after creation
+      }
+
+      async function deleteBlog() {
+        if (!currentUser) {
+          alert("Please log in first.");
+          return;
+        }
+        const index = parseInt(document.getElementById("delete-index").value);
+        const response = await fetch("/delete_blog", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: currentUser, index }),
+        });
+        const result = await response.json();
+        alert(result.message);
+        loadBlogs(); // Reload blogs after deletion
+      }
+
+      async function modifyBlog() {
+        if (!currentUser) {
+          alert("Please log in first.");
+          return;
+        }
+        const index = parseInt(document.getElementById("modify-index").value);
+        const newTitle = document.getElementById("modify-title").value;
+        const newContent = document.getElementById("modify-content").value;
+        const response = await fetch("/modify_blog", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: currentUser,
+            index,
+            new_title: newTitle,
+            new_content: newContent,
+          }),
+        });
+        const result = await response.json();
+        alert(result.message);
+        loadBlogs(); // Reload blogs after modification
+      }
+
+      async function loadBlogs() {
+        if (!currentUser) {
+          alert("Please log in first.");
+          return;
+        }
+        const response = await fetch(`/get_blogs?username=${currentUser}`);
+        const result = await response.json();
+        const blogList = document.getElementById("blog-list");
+        blogList.innerHTML = ""; // Clear existing blogs
+        if (result.blogs.length === 0) {
+          blogList.innerHTML = "<p>No blogs available.</p>";
+        } else {
+          result.blogs.forEach((blog, index) => {
+            const blogItem = document.createElement("div");
+            blogItem.classList.add("blog-item");
+            blogItem.innerHTML = `<strong>${index + 1}. ${
+              blog.title
+            }</strong><p>${blog.content}</p>`;
+            blogList.appendChild(blogItem);
+          });
+        }
+      }
+      function returnToHome() {
+        // Hide blog section and home button
+        document.getElementById("blog-section").classList.add("hidden");
+        document.getElementById("home-button").classList.add("hidden");
+      
+        // Show login and register forms
+        document.getElementById("login-form").classList.remove("hidden");
+        document.getElementById("register-form").classList.remove("hidden");
+      
+        currentUser = null; // Log out the user
+      }
+      
+    </script>
+  </body>
+</html>
